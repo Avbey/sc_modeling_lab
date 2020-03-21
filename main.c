@@ -1,54 +1,47 @@
 #include <stdio.h>
 #include <time.h>
 #include "matrix.h"
+#include "io_test.h"
+#include "plain.h"
+#include "m_omp.h"
 
-
-double ts_to_ms(struct timespec* ts) {
-    return (((double) ts->tv_sec) * 1000.0) + (((double) ts->tv_nsec) / 1000000.0);
+double ts_to_s(struct timespec* ts) {
+    return (((double) ts->tv_sec)) + (((double) ts->tv_nsec) * 1.0e-9);
 }
 
-void job(matrix_struct *matrixA, const matrix_struct *matrixB, int is_multi) {
+matrix_struct job(matrix_struct *matrixA, const matrix_struct *matrixB) {
     matrix_struct result;
     struct timespec start;
     struct timespec end;
+//    FILE *out;
+//    out = fopen("results.txt", "w+");
 
     clock_gettime(CLOCK, &start);
-    *matrixA = transpose(matrixA, is_multi);
-    result = multiply(matrixA, matrixB, is_multi);
+    result = multiply(matrixA, matrixB);
+//    result = multiply_omp(matrixA, matrixB);
     clock_gettime(CLOCK, &end);
 
-    double start_time = ts_to_ms(&start);
-    double end_time = ts_to_ms(&end);
+    double time = ts_to_s(&end) - ts_to_s(&start);
+    double GFlops = 2.0e-9*result.rows*result.rows*result.rows/time;
+    printf("%d,%f", result.rows, GFlops);
 
-    double time = end_time - start_time;
-
-    if (is_multi) {
-        printf("Multi-threaded execution time: %f ms\n", time);
-    } else {
-        printf("Single-threaded execution time: %f ms\n", time);
-    }
+//    fclose(out);
+    return(result);
 }
 
 int main() {
-    matrix_struct matrixA, matrixB;
-    //    FILE *in;
-    //    in = fopen("/home/boris/CLionProjects/lab/test1_real.txt", "r");
-    //    FILE *out;
-    //    out = fopen("/home/boris/CLionProjects/lab/result.txt", "w+");
-    //    matrix_from_file(in, &matrixA);
-    //    matrix_from_file(in, &matrixB);
-    //    fclose(in);
+    matrix_struct matrixA, matrixB, result;
+//    FILE *out;
+//    out = fopen("../result.txt", "w+");
+//    matrix_from_std(&matrixA);
+//    matrix_from_std(&matrixB);
 
-    randomize_matrix(&matrixA, 500);
-    randomize_matrix(&matrixB, 500);
+    randomize_matrix(&matrixA, 400);
+    randomize_matrix(&matrixB, 400);
 
-    // single-threaded
     printf("\n");
-    job(&matrixA, &matrixB, 0);
+    job(&matrixA, &matrixB);
 
-    // multi-threaded
-    printf("\n");
-    job(&matrixA, &matrixB, 1);
 
     free_matrix(&matrixA);
     free_matrix(&matrixB);
