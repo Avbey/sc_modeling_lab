@@ -5,7 +5,7 @@
 #include <omp.h>
 #include "matrix.h"
 
-matrix_struct multiply_omp(matrix_struct *a, const matrix_struct *b) {
+matrix_struct multiply_omp(const matrix_struct *a, const matrix_struct *b, int num_threads) {
     // Variables
     matrix_struct result;
 
@@ -16,23 +16,14 @@ matrix_struct multiply_omp(matrix_struct *a, const matrix_struct *b) {
 
     // Creating result matrix
     create_matrix(&result, a->cols, b->cols);
-
-#pragma omp parallel
-    {
-        if (omp_get_thread_num() == 0) {
-            printf("Using %i thread(s)\n", omp_get_num_threads());
-        }
-
-#pragma omp for
+    omp_set_num_threads(num_threads);
+#pragma omp parallel for
         for (int i = 0; i < result.rows; ++i) {
             for (int j = 0; j < result.cols; ++j) {
-                double complex product = 0;
                 for (int k = 0; k < a->rows; ++k) {
-                    product += conj(a->data[k][i]) * b->data[k][j];
+                    result.data[i][j] += conj(a->data[k][i]) * b->data[k][j];
                 }
-                result.data[i][j] = product;
             }
         }
-    }
     return result;
 }
