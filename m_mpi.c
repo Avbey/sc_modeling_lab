@@ -8,14 +8,14 @@
 
 complex double *flatten(matrix_struct *m) {
     complex double *matrix = malloc((m->rows * m->cols) * sizeof(complex double));
-    for (int i = 0; i < m->rows; i++) {
+    for (int i = 0; i < m->rows; ++i) {
         memcpy(matrix + (i * m->cols), m->data[i], m->cols * sizeof(complex double));
     }
     return matrix;
 }
 
 int main(int argc, char *argv[]) {
-    unsigned dims[4];
+    int dims[4];
     complex double *flat_a = NULL;
     complex double *flat_b = NULL;
     complex double *flat_final = NULL;
@@ -62,7 +62,8 @@ int main(int argc, char *argv[]) {
     MPI_Bcast(flat_a, 2 * size_a , MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(flat_b, 2 * size_b , MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    int startrow = rank * (dims[1] / num_worker);
+    // incorrect
+    int startrow = (dims[1] / num_worker + 1) * rank; // 2-1 2-1 -> 0 0
     int endrow = ((rank + 1) * (dims[1] / num_worker)) - 1;
 
     int number_of_rows = size_res / num_worker;
@@ -83,7 +84,7 @@ int main(int argc, char *argv[]) {
     free(flat_b);
 
     //gather results
-    MPI_Gather(result_matrix, 2*number_of_rows, MPI_DOUBLE, flat_final, 2 * number_of_rows, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gather(result_matrix, 2 * number_of_rows, MPI_DOUBLE, flat_final, 2 * number_of_rows, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 //    double endMPI = MPI_Wtime();
 //    double GFlops = 12.0e-9*(dims[0])*(dims[0])*(dims[0])/(endMPI - startMPI);
