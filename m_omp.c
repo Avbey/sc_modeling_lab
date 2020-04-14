@@ -1,29 +1,27 @@
 #include "m_omp.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <complex.h>
 #include <omp.h>
 #include "matrix.h"
 
-matrix_struct multiply_omp(const matrix_struct *a, const matrix_struct *b, int num_threads) {
+void multiply_omp(const matrix_struct *a, const matrix_struct *b, matrix_struct *result, int num_threads) {
     // Variables
-    matrix_struct result;
+    int i, j, k, ii;
+    unsigned int row_size = a->rows;
+    double complex *conjTN = (double complex *) emalloc(num_threads*row_size* sizeof(double complex));
+    double complex *conjT = NULL;
 
-    if(a->rows != b->rows) {
-        fprintf(stderr,'Given matrices cannot be multiplied');
-        exit(EXIT_FAILURE);
-    }
-
-    // Creating result matrix
-    create_matrix(&result, a->cols, b->cols);
+    // Setting number of threads for omp
     omp_set_num_threads(num_threads);
-#pragma omp parallel for
-        for (int i = 0; i < result.rows; ++i) {
-            for (int j = 0; j < result.cols; ++j) {
-                for (int k = 0; k < a->rows; ++k) {
-                    result.data[i][j] += conj(a->data[k][i]) * b->data[k][j];
-                }
+
+#pragma omp parallel for private(i, j, k, ii, conjT)
+    for (i = 0; i < result->rows; ++i)
+        for (k = 0; k < a->rows; ++k) {
+            conjT = conjTN + row_size*omp_get_thread_num();
+            for (ii = 0; ii < result->rows; ++ii)
+                conjT[ii] = conj(a->data[k][ii]);
+            for (j = 0; j < result->cols; ++j) {
+                result->data[i][j] += conjT[i] * b->data[k][j];
             }
         }
-    return result;
+    free(conjTN);
 }

@@ -24,6 +24,10 @@ void create_matrix(matrix_struct *matrix, unsigned int rows, unsigned int cols) 
     matrix->cols = cols;
     matrix->data = (double complex **) emalloc(rows * sizeof(double complex *));
     for (int i = 0; i < rows; ++i) matrix->data[i] = (double complex *) emalloc(cols * sizeof(double complex));
+    // Init with zeros
+    for (int i = 0; i < rows; ++i)
+        for (int j = 0; j < cols; ++j)
+            matrix->data[i][j] = 0;
 }
 
 void randomize_matrix(matrix_struct *matrix, unsigned int dim) {
