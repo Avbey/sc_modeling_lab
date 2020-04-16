@@ -19,10 +19,10 @@ int main(int argc, char *argv[]) {
     complex double *flat_a = NULL;
     complex double *flat_b = NULL;
     complex double *flat_final = NULL;
-    int num_worker, rank;
+    int worker_count, rank;
 
     MPI_Init(&argc, &argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_worker);
+    MPI_Comm_size(MPI_COMM_WORLD, &worker_count);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 //    double startMPI = MPI_Wtime();
@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         matrix_struct matrixA, matrixB;
 
+//        randomize_matrix(&matrixA, 1200);
+//        randomize_matrix(&matrixB, 1200);
         matrix_from_std(&matrixA);
         matrix_from_std(&matrixB);
 
@@ -61,24 +63,27 @@ int main(int argc, char *argv[]) {
     MPI_Bcast(flat_a, size_a , MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
     MPI_Bcast(flat_b, size_b , MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
-    int count = dims[1] / num_worker;
-    int remainder = dims[1] % num_worker;
-    int start, stop;
+    if(dims[1] < worker_count) {
+        MPI_Abort(MPI_COMM_WORLD, 0);
+    }
+
+    int count = dims[1] / worker_count;
+    int remainder = dims[1] % worker_count;
+    int start_row, end_row;
 
     if (rank < remainder) {
-        start = rank * (count + 1);
-        stop = start + count;
+        start_row = rank * (count + 1);
+        end_row = start_row + count;
     } else {
-        start = rank * count + remainder;
-        stop = start + (count - 1);
+        start_row = rank * count + remainder;
+        end_row = start_row + (count - 1);
     }
-    int number_of_rows = (stop - start + 1)*dims[3];
-    printf("%d<=%d\n", start, stop);
-    complex double *part_matrix = calloc(number_of_rows, sizeof(complex double));
+    int part_count = (end_row - start_row + 1) * dims[3];
+    complex double *part_matrix = calloc(part_count, sizeof(complex double));
 
     int position = 0;
 
-    for (int i = start; i <= stop; ++i) {
+    for (int i = start_row; i <= end_row; ++i) {
         for (int j = 0; j < dims[3]; ++j) {
             for (int k = 0; k < dims[0]; ++k) {
                 part_matrix[position] += conj(flat_a[(k * dims[1] + i)]) * flat_b[(k * dims[3] + j)];
@@ -90,8 +95,7 @@ int main(int argc, char *argv[]) {
     free(flat_a);
     free(flat_b);
 
-    //gather results
-    MPI_Gather(part_matrix, number_of_rows, MPI_C_DOUBLE_COMPLEX, flat_final, number_of_rows, MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
+    MPI_Gather(part_matrix, part_count, MPI_C_DOUBLE_COMPLEX, flat_final, part_count, MPI_C_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
 
 //    double endMPI = MPI_Wtime();
 //    double GFlops = 12.0e-9*(dims[0])*(dims[0])*(dims[0])/(endMPI - startMPI);

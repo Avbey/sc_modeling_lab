@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
-project(lab C)
+project(lab/src C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(lab main.c matrix.c matrix.h io_test.c io_test.h m_omp.c m_omp.h sequential.c sequential.h m_mpi.c test.c)
+add_executable(lab src/main.c src/matrix.c src/matrix.h src/io_test.c src/io_test.h src/m_omp.c src/m_omp.h src/sequential.c src/sequential.h)
 
 find_package(OpenMP)
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
